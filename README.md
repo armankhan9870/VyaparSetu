@@ -244,3 +244,13 @@ frontend/
 - **Duplicated schema**: the frontend's Prisma schema re-declares `Business`, `Transaction`, `Expense`, etc. even though the backend is the real owner of that data — keep both schemas in sync manually if you change one, or consider removing the duplication and having the frontend read/write everything through the backend API only.
 - **Port mismatch in the example env files**: reconcile `backend/.env`'s `PORT` with `frontend/.env`'s `NEXT_PUBLIC_API_URL` (see step 4).
 - **Secrets**: replace all placeholder secrets (`JWT_SECRET`, `JWT_REFRESH_SECRET`, API keys) before deploying anywhere beyond local development.
+
+
+
+
+## 9. Known gaps / things to verify before production use
+
+- **No shared auth between services**: the backend does not currently verify a token from the frontend session; user-scoped endpoints fall back to a `dev-user` placeholder. Add authentication middleware (e.g. verifying the frontend's session or a shared JWT) before exposing the backend publicly.
+- **Duplicated schema**: the frontend's Prisma schema re-declares `Business`, `Transaction`, `Expense`, etc. even though the backend is the real owner of that data — keep both schemas in sync manually if you change one, or consider removing the duplication and having the frontend read/write everything through the backend API only.
+- **Port mismatch in the example env files**: reconcile `backend/.env`'s `PORT` with `frontend/.env`'s `NEXT_PUBLIC_API_URL` (see step 4).
+- **Secrets**: replace all placeholder secrets (`JWT_SECRET`, `JWT_REFRESH_SECRET`, API keys) before deploying anywhere beyond local development.
