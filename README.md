@@ -56,7 +56,7 @@ Micro-enterprises make up ~45% of India's manufacturing and employment base, yet
 **Important architectural note:** the frontend and backend maintain two independent Postgres databases with overlapping (but not identical) schemas for `Business`, `Transaction`, `Expense`, etc. The frontend's copy of these models exists mainly so its Prisma client can type-check; the actual source of truth for business/financial records is the **backend** database, reached over HTTP. There is currently no shared authentication between the two services — the backend's user-scoped endpoints default to a placeholder `dev-user` unless a `userId` is explicitly passed, so treat the backend as a trusted-network internal service rather than a public API in its current state.
 
 ```mermaid
-%%{init: {"theme": "dark", "themeVariables": {"fontSize": "20px", "primaryColor": "#16213e", "primaryTextColor": "#ffffff", "primaryBorderColor": "#4d7ea8", "lineColor": "#78c8ff"}}}%%
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "20px", "primaryColor": "#16213e", "primaryTextColor": "#ffffff", "primaryBorderColor": "#4d7ea8", "lineColor": "#78c8ff", "edgeLabelBackground": "#1a1a2e", "textColor": "#ffffff"}}}%%
 flowchart TB
     Browser["Browser / Mobile Client"]
     Pages["Pages & Dashboard\napp/app/*"]
@@ -112,8 +112,6 @@ flowchart TB
     class LLM,Vertex external
     class FEDb,BEDb db
 ```
-
-> The three invisible connectors between Auth / API wrappers / AI Agent / Voice Agent (`~~~`) don't represent a real call sequence — they just force the layout engine to stack those four boxes in one column instead of spreading them sideways. The real relationships are the arrows: Auth and the AI Agent write to the frontend DB; API wrappers call the backend; the AI Agent and Voice Agent call the external LLM / Vertex AI Live.
 
 ### Request flow example — viewing the dashboard
 
