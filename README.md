@@ -56,22 +56,23 @@ Micro-enterprises make up ~45% of India's manufacturing and employment base, yet
 **Important architectural note:** the frontend and backend maintain two independent Postgres databases with overlapping (but not identical) schemas for `Business`, `Transaction`, `Expense`, etc. The frontend's copy of these models exists mainly so its Prisma client can type-check; the actual source of truth for business/financial records is the **backend** database, reached over HTTP. There is currently no shared authentication between the two services — the backend's user-scoped endpoints default to a placeholder `dev-user` unless a `userId` is explicitly passed, so treat the backend as a trusted-network internal service rather than a public API in its current state.
 
 ```mermaid
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "20px", "primaryColor": "#16213e", "primaryTextColor": "#ffffff", "primaryBorderColor": "#4d7ea8", "lineColor": "#78c8ff"}}}%%
 flowchart TB
     Browser["Browser / Mobile Client"]
+    Pages["Pages & Dashboard\napp/app/*"]
 
     subgraph FE["Next.js 16 Frontend — /frontend"]
-        Pages["Pages & Dashboard\napp/app/*"]
         AuthLib["Auth\nlib/auth-types.ts, cookie session"]
+        ApiClient["API wrappers\nlib/api/*.ts → client.ts"]
         Agent["AI Agent\nlib/agent/*\nReAct loop + tools"]
         VoiceSession["Voice Agent\nlib/voice/*, app/api/voice/session"]
-        ApiClient["API wrappers\nlib/api/*.ts → client.ts"]
         FEDb[("Frontend Postgres DB\nUser · Session · Conversation\nSettings · Notification")]
     end
 
     subgraph BE["Express Backend API — /backend"]
         Routes["routes/ → controllers/ → services/\nREST API at /api/v1"]
-        Swagger["Swagger docs\n/api-docs"]
         BEDb[("Backend Postgres DB\nBusiness · Transaction · Expense\nBudget · Savings · Debt")]
+        Swagger["Swagger docs\n/api-docs"]
     end
 
     subgraph Ext["External services"]
@@ -80,24 +81,39 @@ flowchart TB
     end
 
     Browser -->|HTTPS| Pages
-    Pages --> AuthLib --> FEDb
+    Pages --> AuthLib
     Pages --> ApiClient
+    Pages --> Agent
+    Pages --> VoiceSession
+    AuthLib ~~~ ApiClient
+    ApiClient ~~~ Agent
+    Agent ~~~ VoiceSession
+
+    AuthLib --> FEDb
+    Agent --> FEDb
+
     ApiClient -->|REST, API_BASE_URL| Routes
     Routes --> BEDb
     Routes --> Swagger
 
-    Pages --> Agent
-    Agent --> FEDb
     Agent -->|LLM calls, tool use| LLM
-
-    Pages --> VoiceSession
     VoiceSession -->|mints short-lived token| Vertex
     Browser -.->|real-time audio stream| Vertex
 
-    style Ext fill:#1a1a2e,color:#fff
-    style BE fill:#16213e,color:#fff
-    style FE fill:#0f3460,color:#fff
+    classDef client fill:#0f3460,color:#fff,stroke:#4d7ea8,stroke-width:1px
+    classDef frontend fill:#16213e,color:#fff,stroke:#4d7ea8,stroke-width:1px
+    classDef backend fill:#1a1a2e,color:#fff,stroke:#e94560,stroke-width:1px
+    classDef external fill:#2b2b40,color:#fff,stroke:#f5a623,stroke-width:1px
+    classDef db fill:#0d1b2a,color:#fff,stroke:#78c8ff,stroke-width:1px
+
+    class Browser client
+    class Pages,AuthLib,ApiClient,Agent,VoiceSession frontend
+    class Routes,Swagger backend
+    class LLM,Vertex external
+    class FEDb,BEDb db
 ```
+
+> The three invisible connectors between Auth / API wrappers / AI Agent / Voice Agent (`~~~`) don't represent a real call sequence — they just force the layout engine to stack those four boxes in one column instead of spreading them sideways. The real relationships are the arrows: Auth and the AI Agent write to the frontend DB; API wrappers call the backend; the AI Agent and Voice Agent call the external LLM / Vertex AI Live.
 
 ### Request flow example — viewing the dashboard
 
